@@ -154,6 +154,7 @@ rules:
     - DOMAIN-SUFFIX,clarivate.com,🎯 Direct
     - DOMAIN-SUFFIX,classix-unlimited.co.uk,🎯 Direct
     - DOMAIN-SUFFIX,cmbimg.com,🎯 Direct
+    - DOMAIN-SUFFIX,googleapis.cn,🐟 漏网之鱼
     - DOMAIN-SUFFIX,cn,🎯 Direct
     - DOMAIN-SUFFIX,com-hs-hkdy.com,🎯 Direct
     - DOMAIN-SUFFIX,crashlytics.com,🎯 Direct
@@ -1016,6 +1017,6 @@ rules:
     - DOMAIN-SUFFIX,cbks3.googleapis.com,🛑 Block
     - DOMAIN-SUFFIX,streetviewpixels-pa.googleapis.com,🛑 Block
     - DOMAIN-SUFFIX,khm.l.google.com,🛑 Block
-    - GEOIP,CN,🎯 Direct
+    - GEOIP,CN,🎯 Direct,no-resolve
     - GEOSITE,CN,🎯 Direct
     - MATCH,🐟 漏网之鱼
