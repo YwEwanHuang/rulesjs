@@ -14,9 +14,10 @@ function main(config) {
   // ===================== 2. 执行规则修改逻辑 (仅在无 PolYun 时运行) =====================
   const newRules = [];
 
-  // TikTok 规则逻辑
-  const tiktokNode = '美国 A09 Gemini 移动优化路由'; 
-  const tiktokDomains = [
+  // TikTok / OpenAI / Gemini 规则逻辑
+  const proxyNode = '美国 A09 Gemini 移动优化';
+  const proxyDomains = [
+    // TikTok
     "tiktok.com",
     "tiktokv.com",
     "tiktokcdn.com",
@@ -24,18 +25,23 @@ function main(config) {
     "byteoversea.com",
     "ibytedtok.com",
     "musical.ly",
-    "muscdn.com"
+    "muscdn.com",
+    // OpenAI / ChatGPT
+    "chatgpt.com",
+    "openai.com",
+    "oaiusercontent.com",
+    "openai.org",
+    "openai.azure.com",
+    // Gemini
+    "gemini.google.com",
+    "aistudio.google.com",
+    "ai.google.dev",
+    "generativelanguage.googleapis.com",
   ];
-  
-  tiktokDomains.forEach(domain => {
-    newRules.push(`DOMAIN-SUFFIX,${domain},${tiktokNode}`);
+  proxyDomains.forEach(domain => {
+    newRules.push(`DOMAIN-SUFFIX,${domain},${proxyNode}`);
   });
-  newRules.push(`DOMAIN-KEYWORD,tiktok,${tiktokNode}`);
-
-  // ChatGPT 规则逻辑
-  const llmNode = '美国 A09 Gemini 移动优化路由';
-  newRules.push("DOMAIN-SUFFIX,chatgpt.com," + llmNode);
-  newRules.push("DOMAIN-SUFFIX,openai.com," + llmNode);
+  newRules.push(`DOMAIN-KEYWORD,tiktok,${proxyNode}`);
 
   // 处理原始规则
   (config["rules"] || []).forEach(rule => {
