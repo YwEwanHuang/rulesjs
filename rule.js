@@ -1,22 +1,55 @@
-// Define main function (script entry)
+// Clash Verge extension script
 function main(config) {
-  // ===================== 1. 检测 PolYun 存在性 =====================
-  // 遍历 proxy-groups 检查是否有名为 "PolYun" 的组
-  const hasPolYun = (config["proxy-groups"] || []).some(group => 
-    group.name === "PolYun" || group.name.includes("PolYun")
-  );
+  config = config || {};
 
-  // 如果检测到 PolYun，直接返回原配置，不做任何修改
-  if (hasPolYun) {
-    return config;
+  const originalRules = Array.isArray(config["rules"]) ? config["rules"] : [];
+  const proxyTarget = resolveProxyTarget(config);
+  const newRules = [];
+  const seen = new Set();
+
+  function addRule(rule) {
+    if (!seen.has(rule)) {
+      newRules.push(rule);
+      seen.add(rule);
+    }
   }
 
-  // ===================== 2. 执行规则修改逻辑 (仅在无 PolYun 时运行) =====================
-  const newRules = [];
+  function withNoResolve(rule) {
+    const parts = String(rule).split(",");
+    if (parts[0] === "GEOIP" && parts[1] === "CN" && !parts.includes("no-resolve")) {
+      return rule + ",no-resolve";
+    }
+    return rule;
+  }
 
-  // TikTok / OpenAI / Gemini 规则逻辑
-  const proxyNode = '美国 A09 Gemini 移动优化';
   const proxyDomains = [
+    // ChatGPT / Codex / OpenAI
+    "chatgpt.com",
+    "chat.openai.com",
+    "openai.com",
+    "api.openai.com",
+    "auth.openai.com",
+    "cdn.openai.com",
+    "oaistatic.com",
+    "oaiusercontent.com",
+    "codex.openai.com",
+
+    // ChatGPT mobile app, explicit coverage
+    "ios.chat.openai.com",
+    "android.chat.openai.com",
+    "realtime.chatgpt.com",
+
+    // OpenAI on Azure / API edge cases
+    "openai.azure.com",
+
+    // Gemini
+    "gemini.google.com",
+    "aistudio.google.com",
+    "ai.google.dev",
+    "generativelanguage.googleapis.com",
+    "googleapis.com",
+    "googleapis.cn",
+
     // TikTok
     "tiktok.com",
     "tiktokv.com",
@@ -25,49 +58,70 @@ function main(config) {
     "byteoversea.com",
     "ibytedtok.com",
     "musical.ly",
-    "muscdn.com",
-    // OpenAI / ChatGPT
-    "chatgpt.com",
-    "openai.com",
-    "oaiusercontent.com",
-    "openai.org",
-    "openai.azure.com",
-    // Gemini
-    "gemini.google.com",
-    "aistudio.google.com",
-    "ai.google.dev",
-    "generativelanguage.googleapis.com",
+    "muscdn.com"
   ];
+
+  const proxyKeywords = [
+    "chatgpt",
+    "openai",
+    "codex",
+    "oaistatic",
+    "oaiusercontent",
+    "tiktok"
+  ];
+
   proxyDomains.forEach(domain => {
-    newRules.push(`DOMAIN-SUFFIX,${domain},${proxyNode}`);
-  });
-  newRules.push(`DOMAIN-KEYWORD,tiktok,${proxyNode}`);
-
-  // 处理原始规则
-  (config["rules"] || []).forEach(rule => {
-    // 插入 googleapis.cn 到匹配到的 cn 规则之前
-    // 注意：这里使用的是针对 R3RbmUJWRZyK.yaml 的 "\u{1F530} 手动选择"
-    const insertNewRule = "DOMAIN-SUFFIX,googleapis.cn,\u{1F530} 手动选择";
-    
-    if (rule.includes("DOMAIN-SUFFIX,cn,")) {
-      newRules.push(insertNewRule);
-    }
-
-    // GEOIP 规则添加 no-resolve
-    if (rule.includes("GEOIP,CN") && rule.includes("Direct")) {
-      // 避免重复添加 no-resolve
-      if (!rule.includes("no-resolve")) {
-        newRules.push(rule + ",no-resolve");
-      } else {
-        newRules.push(rule);
-      }
-    } else {
-      newRules.push(rule);
-    }
+    addRule(`DOMAIN-SUFFIX,${domain},${proxyTarget}`);
   });
 
-  // 替换为处理后的规则
+  proxyKeywords.forEach(keyword => {
+    addRule(`DOMAIN-KEYWORD,${keyword},${proxyTarget}`);
+  });
+
+  originalRules.forEach(rule => {
+    addRule(withNoResolve(rule));
+  });
+
   config["rules"] = newRules;
-
   return config;
+}
+
+function resolveProxyTarget(config) {
+  const groups = Array.isArray(config["proxy-groups"]) ? config["proxy-groups"] : [];
+  const proxies = Array.isArray(config["proxies"]) ? config["proxies"] : [];
+
+  const groupNames = groups
+    .map(group => group && group.name)
+    .filter(name => typeof name === "string" && name.length > 0);
+
+  const proxyNames = proxies
+    .map(proxy => proxy && proxy.name)
+    .filter(name => typeof name === "string" && name.length > 0);
+
+  const allNames = groupNames.concat(proxyNames);
+
+  const preferredNames = [
+    "美国 A09 Gemini 移动优化"
+  ];
+
+  for (const name of preferredNames) {
+    const exact = allNames.find(item => item === name);
+    if (exact) {
+      return exact;
+    }
+  }
+
+  const fuzzy = allNames.find(item =>
+    item.includes("PolYun") ||
+    item.includes("Gemini") ||
+    item.includes("手动") ||
+    item.includes("节点") ||
+    item.includes("Proxy")
+  );
+
+  if (fuzzy) {
+    return fuzzy;
+  }
+
+  return groupNames[0] || proxyNames[0] || "DIRECT";
 }
