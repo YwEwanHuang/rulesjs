@@ -23,7 +23,7 @@ function main(config) {
   }
 
   const proxyDomains = [
-    // ChatGPT / Codex / OpenAI
+    // ── ChatGPT / OpenAI core ──
     "chatgpt.com",
     "chat.openai.com",
     "openai.com",
@@ -34,23 +34,29 @@ function main(config) {
     "oaiusercontent.com",
     "codex.openai.com",
 
-    // ChatGPT mobile app, explicit coverage
+    // ChatGPT mobile app
     "ios.chat.openai.com",
     "android.chat.openai.com",
     "realtime.chatgpt.com",
+    "ab.chatgpt.com",
 
-    // OpenAI on Azure / API edge cases
+    // OpenAI infrastructure / edge
     "openai.azure.com",
+    "sentry.io",                         // error reporting
+    "statsigapi.net",                    // feature flags / stats
+    "featuregates.org",                  // feature gates
+    "intercom.io",                       // customer support
+    "intercomcdn.com",                   // intercom CDN
+    "client-api.arkoselabs.com",         // captcha / verification
 
-    // Gemini
+    // ── Gemini ──
     "gemini.google.com",
     "aistudio.google.com",
     "ai.google.dev",
-    "generativelanguage.googleapis.com",
-    "googleapis.com",
-    "googleapis.cn",
+    "generativelanguage.googleapis.com", // Gemini API
+    "googleapis.cn",                     // China mirror
 
-    // TikTok
+    // ── TikTok ──
     "tiktok.com",
     "tiktokv.com",
     "tiktokcdn.com",
