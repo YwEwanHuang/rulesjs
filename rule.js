@@ -118,11 +118,7 @@ function resolveProxyTarget(config) {
   }
 
   const fuzzy = allNames.find(item =>
-    item.includes("PolYun") ||
-    item.includes("Gemini") ||
-    item.includes("手动") ||
-    item.includes("节点") ||
-    item.includes("Proxy")
+    item.includes("Gemini")
   );
 
   if (fuzzy) {
