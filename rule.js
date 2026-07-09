@@ -1,9 +1,11 @@
 // Clash Verge extension script
+// Creates a dedicated AI fallback proxy group and routes AI-related traffic to it.
+
 function main(config) {
   config = config || {};
 
   const originalRules = Array.isArray(config["rules"]) ? config["rules"] : [];
-  const proxyTarget = resolveProxyTarget(config);
+  const aiProxyGroup = ensureAiProxyGroup(config);
   const newRules = [];
   const seen = new Set();
 
@@ -22,10 +24,14 @@ function main(config) {
     return rule;
   }
 
-  const proxyDomains = [
-    // ── ChatGPT / OpenAI core ──
+  const aiDomains = [
+    // ChatGPT / OpenAI
     "chatgpt.com",
     "chat.openai.com",
+    "ios.chat.openai.com",
+    "android.chat.openai.com",
+    "realtime.chatgpt.com",
+    "ab.chatgpt.com",
     "openai.com",
     "api.openai.com",
     "auth.openai.com",
@@ -33,30 +39,24 @@ function main(config) {
     "oaistatic.com",
     "oaiusercontent.com",
     "codex.openai.com",
-
-    // ChatGPT mobile app
-    "ios.chat.openai.com",
-    "android.chat.openai.com",
-    "realtime.chatgpt.com",
-    "ab.chatgpt.com",
-
-    // OpenAI infrastructure / edge
     "openai.azure.com",
-    "sentry.io",                         // error reporting
-    "statsigapi.net",                    // feature flags / stats
-    "featuregates.org",                  // feature gates
-    "intercom.io",                       // customer support
-    "intercomcdn.com",                   // intercom CDN
-    "client-api.arkoselabs.com",         // captcha / verification
 
-    // ── Gemini ──
+    // OpenAI-related infrastructure
+    "sentry.io",
+    "statsigapi.net",
+    "featuregates.org",
+    "intercom.io",
+    "intercomcdn.com",
+    "client-api.arkoselabs.com",
+
+    // Gemini / Google AI
     "gemini.google.com",
     "aistudio.google.com",
     "ai.google.dev",
-    "generativelanguage.googleapis.com", // Gemini API
-    "googleapis.cn",                     // China mirror
+    "generativelanguage.googleapis.com",
+    "googleapis.cn",
 
-    // ── TikTok ──
+    // TikTok
     "tiktok.com",
     "tiktokv.com",
     "tiktokcdn.com",
@@ -67,21 +67,22 @@ function main(config) {
     "muscdn.com"
   ];
 
-  const proxyKeywords = [
+  const aiKeywords = [
     "chatgpt",
     "openai",
     "codex",
     "oaistatic",
     "oaiusercontent",
+    "gemini",
     "tiktok"
   ];
 
-  proxyDomains.forEach(domain => {
-    addRule(`DOMAIN-SUFFIX,${domain},${proxyTarget}`);
+  aiDomains.forEach(domain => {
+    addRule(`DOMAIN-SUFFIX,${domain},${aiProxyGroup}`);
   });
 
-  proxyKeywords.forEach(keyword => {
-    addRule(`DOMAIN-KEYWORD,${keyword},${proxyTarget}`);
+  aiKeywords.forEach(keyword => {
+    addRule(`DOMAIN-KEYWORD,${keyword},${aiProxyGroup}`);
   });
 
   originalRules.forEach(rule => {
@@ -92,38 +93,45 @@ function main(config) {
   return config;
 }
 
-function resolveProxyTarget(config) {
-  const groups = Array.isArray(config["proxy-groups"]) ? config["proxy-groups"] : [];
+function ensureAiProxyGroup(config) {
+  const aiGroupName = "🤖 AI Fallback";
   const proxies = Array.isArray(config["proxies"]) ? config["proxies"] : [];
-
-  const groupNames = groups
-    .map(group => group && group.name)
-    .filter(name => typeof name === "string" && name.length > 0);
-
   const proxyNames = proxies
     .map(proxy => proxy && proxy.name)
     .filter(name => typeof name === "string" && name.length > 0);
 
-  const allNames = groupNames.concat(proxyNames);
-
-  const preferredNames = [
-    "美国 A09 Gemini 移动优化"
-  ];
-
-  for (const name of preferredNames) {
-    const exact = allNames.find(item => item === name);
-    if (exact) {
-      return exact;
-    }
-  }
-
-  const fuzzy = allNames.find(item =>
-    item.includes("Gemini")
+  const fallbackNodes = proxyNames.filter(name =>
+    name.includes("Gemini") ||
+    name.includes("日本") ||
+    name.includes("新加坡")
   );
 
-  if (fuzzy) {
-    return fuzzy;
+  if (fallbackNodes.length === 0) {
+    return proxyNames[0] || "DIRECT";
   }
 
-  return groupNames[0] || proxyNames[0] || "DIRECT";
+  upsertProxyGroup(config, {
+    name: aiGroupName,
+    type: "fallback",
+    proxies: fallbackNodes,
+    url: "http://www.gstatic.com/generate_204",
+    interval: 300,
+    lazy: true
+  });
+
+  return aiGroupName;
+}
+
+function upsertProxyGroup(config, group) {
+  if (!Array.isArray(config["proxy-groups"])) {
+    config["proxy-groups"] = [];
+  }
+
+  const index = config["proxy-groups"].findIndex(item => item && item.name === group.name);
+  if (index >= 0) {
+    config["proxy-groups"][index] = group;
+    return;
+  }
+
+  config["proxy-groups"].unshift(group);
 }
