@@ -5,6 +5,11 @@ function main(config) {
   config = config || {};
 
   const originalRules = Array.isArray(config["rules"]) ? config["rules"] : [];
+  const oneDriveProxyGroup = ensureFallbackProxyGroup(
+    config,
+    "☁️ OneDrive Fallback",
+    "https://onedrive.live.com/"
+  );
   const aiProxyGroup = ensureAiProxyGroup(config);
   const newRules = [];
   const seen = new Set();
@@ -23,6 +28,14 @@ function main(config) {
     }
     return rule;
   }
+
+  [
+    "onedrive.live.com",
+    "api.onedrive.com",
+    "login.microsoftonline.com"
+  ].forEach(domain => {
+    addRule(`DOMAIN-SUFFIX,${domain},${oneDriveProxyGroup}`);
+  });
 
   const aiDomains = [
     // ChatGPT / OpenAI
@@ -94,7 +107,14 @@ function main(config) {
 }
 
 function ensureAiProxyGroup(config) {
-  const aiGroupName = "🤖 AI Fallback";
+  return ensureFallbackProxyGroup(
+    config,
+    "🤖 AI Fallback",
+    "http://www.gstatic.com/generate_204"
+  );
+}
+
+function ensureFallbackProxyGroup(config, groupName, healthUrl) {
   const proxies = Array.isArray(config["proxies"]) ? config["proxies"] : [];
   const proxyNames = proxies
     .map(proxy => proxy && proxy.name)
@@ -111,15 +131,15 @@ function ensureAiProxyGroup(config) {
   }
 
   upsertProxyGroup(config, {
-    name: aiGroupName,
+    name: groupName,
     type: "fallback",
     proxies: fallbackNodes,
-    url: "http://www.gstatic.com/generate_204",
+    url: healthUrl,
     interval: 300,
     lazy: true
   });
 
-  return aiGroupName;
+  return groupName;
 }
 
 function upsertProxyGroup(config, group) {
