@@ -1,5 +1,5 @@
 // Clash Verge extension script
-// Creates a dedicated AI fallback proxy group and routes AI-related traffic to it.
+// Creates dedicated proxy groups for AI services and routes traffic accordingly.
 
 function main(config) {
   config = config || {};
@@ -11,6 +11,7 @@ function main(config) {
     "https://onedrive.live.com/"
   );
   const aiProxyGroup = ensureAiProxyGroup(config);
+  const anthropicProxyGroup = ensureAnthropicProxyGroup(config);
   const newRules = [];
   const seen = new Set();
 
@@ -28,6 +29,14 @@ function main(config) {
     }
     return rule;
   }
+
+  // Claude PROCESS rule — must be first so it wins over keyword/domain rules
+  addRule(`PROCESS-NAME-REGEX,(?i)^claude(\\.exe)?$,${anthropicProxyGroup}`);
+
+  // Anthropic domain rules — placed before general AI rules
+  ["anthropic.com", "claude.ai", "claude.com", "claudeusercontent.com"].forEach(domain => {
+    addRule(`DOMAIN-SUFFIX,${domain},${anthropicProxyGroup}`);
+  });
 
   [
     "onedrive.live.com",
@@ -112,6 +121,36 @@ function ensureAiProxyGroup(config) {
     "🤖 AI Fallback",
     "http://www.gstatic.com/generate_204"
   );
+}
+
+function ensureAnthropicProxyGroup(config) {
+  const proxies = Array.isArray(config["proxies"]) ? config["proxies"] : [];
+  const proxyNames = proxies
+    .map(proxy => proxy && proxy.name)
+    .filter(name => typeof name === "string" && name.length > 0);
+
+  const preferredNodes = proxyNames.filter(name =>
+    name.includes("Gemini") ||
+    name.includes("日本") ||
+    name.includes("新加坡")
+  );
+
+  // Reuse existing node filter, fall back to all proxies, never DIRECT
+  const selectedNodes = preferredNodes.length > 0 ? preferredNodes : proxyNames;
+  const groupName = "☁️ Anthropic Stable";
+
+  if (selectedNodes.length === 0) {
+    // No proxy at all — use REJECT so traffic fails closed, never leaks DIRECT
+    return "REJECT";
+  }
+
+  upsertProxyGroup(config, {
+    name: groupName,
+    type: "select",
+    proxies: selectedNodes
+  });
+
+  return groupName;
 }
 
 function ensureFallbackProxyGroup(config, groupName, healthUrl) {
