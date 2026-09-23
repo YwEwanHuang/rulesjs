@@ -41,7 +41,12 @@ function main(config) {
   [
     "onedrive.live.com",
     "api.onedrive.com",
-    "login.microsoftonline.com"
+    "login.microsoftonline.com",
+    // storage CDNs — required for OneDrive sync after login
+    // subscription has DOMAIN-SUFFIX,storage.live.com,DIRECT; script rules
+    // prepend via first-match, so these win before any subscription rule.
+    "storage.live.com",
+    "files.1drv.com"
   ].forEach(domain => {
     addRule(`DOMAIN-SUFFIX,${domain},${oneDriveProxyGroup}`);
   });
