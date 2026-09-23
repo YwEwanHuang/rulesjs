@@ -123,7 +123,7 @@ function main(config) {
 function ensureAiProxyGroup(config) {
   return ensureFallbackProxyGroup(
     config,
-    "🤖 AI Fallback",
+    "🤖 ChatGPT Codex",
     "http://www.gstatic.com/generate_204"
   );
 }
