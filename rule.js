@@ -51,6 +51,23 @@ function main(config) {
     addRule(`DOMAIN-SUFFIX,${domain},${oneDriveProxyGroup}`);
   });
 
+  // IEEE / academic — Direct route is geo-blocked by IEEE (HTTP 451 from CN),
+  // and mihomo's direct DNS chain is unreliable for these domains in CN.
+  // Send to 🔰 手动选择 so the user picks an academic-friendly node.
+  [
+    "ieee.org",
+    "ieeexplore.ieee.org",
+    "spectrum.ieee.org",
+    "academia.edu",
+    "researchgate.net",
+    "sciencedirect.com",
+    "springer.com",
+    "acm.org",
+    "dl.acm.org"
+  ].forEach(domain => {
+    addRule(`DOMAIN-SUFFIX,${domain},🔰 手动选择`);
+  });
+
   const aiDomains = [
     // ChatGPT / OpenAI
     "chatgpt.com",
