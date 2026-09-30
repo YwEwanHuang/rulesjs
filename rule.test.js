@@ -26,6 +26,8 @@ function runTests() {
       { name: "新加坡节点" }
     ],
     "proxy-groups": [
+      { name: "🔰 手动选择", type: "select", proxies: ["美国节点"] },
+      { name: "其他代理组", type: "select", proxies: ["美国节点"] },
       { name: "☁️ OneDrive Fallback", type: "select", proxies: ["stale"] }
     ],
     rules: [
@@ -37,8 +39,16 @@ function runTests() {
 
   const result = plain(main(config));
   const oneDrive = proxyGroup(result, "☁️ OneDrive Fallback");
-  const ai = proxyGroup(result, "🤖 AI Fallback");
+  const ai = proxyGroup(result, "🤖 ChatGPT Codex");
   const anthropic = proxyGroup(result, "☁️ Anthropic Stable");
+
+  assert.deepEqual(result["proxy-groups"].map(group => group.name), [
+    "🔰 手动选择",
+    "🤖 ChatGPT Codex",
+    "☁️ Anthropic Stable",
+    "其他代理组",
+    "☁️ OneDrive Fallback"
+  ]);
 
   // Existing behavior: OneDrive fallback proxy group unchanged
   assert.deepEqual(oneDrive, {
@@ -85,7 +95,8 @@ function runTests() {
   const rerun = plain(main(result));
   assert.equal(rerun["proxy-groups"].filter(group => group.name === "☁️ Anthropic Stable").length, 1);
   assert.equal(rerun["proxy-groups"].filter(group => group.name === "☁️ OneDrive Fallback").length, 1);
-  assert.equal(rerun["proxy-groups"].filter(group => group.name === "🤖 AI Fallback").length, 1);
+  assert.equal(rerun["proxy-groups"].filter(group => group.name === "🤖 ChatGPT Codex").length, 1);
+  assert.deepEqual(rerun["proxy-groups"].map(group => group.name), result["proxy-groups"].map(group => group.name));
   assert.equal(rerun.rules.filter(rule => rule === "DOMAIN-SUFFIX,anthropic.com,☁️ Anthropic Stable").length, 1);
   assert.equal(rerun.rules.filter(rule => rule === "DOMAIN-SUFFIX,onedrive.live.com,☁️ OneDrive Fallback").length, 1);
 

@@ -12,6 +12,16 @@ function main(config) {
   );
   const aiProxyGroup = ensureAiProxyGroup(config);
   const anthropicProxyGroup = ensureAnthropicProxyGroup(config);
+  const priorityGroups = ["🔰 手动选择", "🤖 ChatGPT Codex", "☁️ Anthropic Stable"];
+  const groups = config["proxy-groups"];
+  if (Array.isArray(groups)) {
+    for (const name of priorityGroups.slice().reverse()) {
+      const index = groups.findIndex(group => group && group.name === name);
+      if (index >= 0) {
+        groups.unshift(groups.splice(index, 1)[0]);
+      }
+    }
+  }
   const newRules = [];
   const seen = new Set();
 
