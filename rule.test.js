@@ -97,7 +97,8 @@ test("preserves strategy names, order, manual Claude selection and both fallback
   for (const [name, url] of [[ai, "https://api.openai.com/v1/models"], [oneDrive, "https://api.onedrive.com/v1.0/drive"]]) {
     const fallback = group(result, name);
     assert.equal(fallback.type, "fallback");
-    assert.deepEqual(fallback.proxies, [...group(result, claude).proxies, "美国节点", "XSgProxy"]);
+    assert.deepEqual(fallback.proxies, name === ai ? group(result, claude).proxies :
+      [...group(result, claude).proxies, "美国节点", "XSgProxy"]);
     assert.equal(fallback.url, url);
     assert.equal(fallback["expected-status"], "401");
     assert.equal(fallback.interval, 300);
@@ -195,9 +196,13 @@ test("Provider-only and mixed groups reference providers via use without a DIREC
     assert.match(group(providerOnly, name)["exclude-type"], /Direct/);
   }
   assert.equal(group(providerOnly, ai)["empty-fallback"], "REJECT");
+  assert.ok(!group(providerOnly, ai).filter.includes("`"), "AI provider filter must not have a catch-all");
+  const aiFilter = new RegExp(group(providerOnly, ai).filter.replace(/^\(\?i\)/, ""), "i");
+  assert.ok(aiFilter.test("JP01"));
+  assert.ok(!aiFilter.test("US01"));
   assert.deepEqual(providerOnly["proxy-providers"], providers);
-  const mixed = run({ proxies: [proxy("US01")], "proxy-providers": providers });
-  assert.deepEqual(group(mixed, ai).proxies, ["US01"]);
+  const mixed = run({ proxies: [proxy("US01"), proxy("Japan"), proxy("Gemini")], "proxy-providers": providers });
+  assert.deepEqual(group(mixed, ai).proxies, ["Japan", "Gemini"]);
   assert.deepEqual(group(mixed, ai).use, Object.keys(providers));
   assert.deepEqual(run(mixed), mixed);
 });
@@ -213,7 +218,8 @@ test("reapplying after a subscription update rebuilds groups, repairs stale refe
     }],
     rules: [...result.rules, "DOMAIN,old.example,missing-policy", "DOMAIN-REGEX,^x{1,2}\\.example$,missing-policy", "DOMAIN,global.example,GLOBAL"]
   });
-  for (const name of [ai, claude, oneDrive]) assert.deepEqual(group(updated, name).proxies, ["new-US-01"]);
+  assert.deepEqual(group(updated, ai).proxies, ["REJECT"]);
+  for (const name of [claude, oneDrive]) assert.deepEqual(group(updated, name).proxies, ["new-US-01"]);
   assert.deepEqual(group(updated, manual).proxies, ["REJECT"]);
   assert.deepEqual(group(updated, "old-pool").use, []);
   assert.deepEqual(group(updated, "old-pool").proxies, ["REJECT"]);

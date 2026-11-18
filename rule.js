@@ -29,7 +29,7 @@ function main(config) {
     url: "https://api.onedrive.com/v1.0/drive",
     "expected-status": "401"
   });
-  ensureProxyGroup(config, AI_GROUP, fallbackNodes, providers, "REJECT", {
+  ensureProxyGroup(config, AI_GROUP, preferred, providers, "REJECT", {
     url: "https://api.openai.com/v1/models",
     "expected-status": "401"
   });
@@ -176,8 +176,8 @@ function ensureProxyGroup(config, name, nodes, providers, emptyFallback, healthC
   }
   if (providers.length) {
     group.use = providers;
-    // Order preferred names first without dropping providers' other nodes on refresh.
-    group.filter = `(?i)${PREFERRED_NODE.source}\`.*`;
+    // Only the ChatGPT/Codex group excludes non-preferred provider nodes.
+    group.filter = `(?i)${PREFERRED_NODE.source}${name === AI_GROUP ? "" : "`.*"}`;
     group["exclude-type"] = "Direct|Compatible|Pass|PassRule|Reject|RejectDrop|Rematch|Dns";
   }
   if (healthCheck) {
